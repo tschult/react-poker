@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { ListItem, ListItemAvatar, ListItemText, Avatar } from '@material-ui/core';
 import LockOpenOutlinedIcon from '@material-ui/icons/LockOpenOutlined';
 import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
 import {makeStyles} from '@material-ui/core/styles';
+import { UserContext } from '../UserContext';
 
 const useStyles = makeStyles((theme) => ({
     green: {
@@ -13,15 +14,16 @@ const useStyles = makeStyles((theme) => ({
 
 function User(props) {
     const classes = useStyles();
+    const { user } = useContext(UserContext);
 
     return (
         <ListItem key={props.name}>
             <ListItemAvatar>
-                <Avatar className={props.isCardLocked ? classes.green : ''}>
-                    {props.selectedCard ? <div>{props.selectedCard}</div> : props.isCardLocked ? <LockOutlinedIcon /> : <LockOpenOutlinedIcon />}
+                <Avatar className={props.user.isCardLocked ? classes.green : ''}>
+                    {props.user.selectedCard ? <div>{props.user.selectedCard}</div> : props.user.isCardLocked ? <LockOutlinedIcon /> : <LockOpenOutlinedIcon />}
                 </Avatar>
             </ListItemAvatar>
-            <ListItemText primary={props.name} />
+            <ListItemText primary={props.user.name === user ? "Ich" : props.user.name} secondary={props.user.selectedCard} />
         </ListItem>
     );
 

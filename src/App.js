@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { CssBaseline, Grid, Paper, List, Radio, RadioGroup, FormControlLabel, ThemeProvider, Button } from '@material-ui/core';
-import Login from './Login';
+import React, { useState, useMemo } from 'react';
+import { CssBaseline, Grid, Paper, ThemeProvider, Container, AppBar, Toolbar, Typography } from '@material-ui/core';
+import Login from './components/Login';
 import * as signalR from '@aspnet/signalr';
-import User from './User';
 import { createMuiTheme, makeStyles } from '@material-ui/core/styles';
 import { teal } from '@material-ui/core/colors';
+import { UserContext } from './UserContext';
+import UserList from './components/UserList';
+import { ConnectionContext } from './ConnectionContext';
+import CardSelection from './components/CardSelection';
+import StyleIcon from '@material-ui/icons/Style';
 
 
 /*
@@ -29,13 +33,14 @@ import { teal } from '@material-ui/core/colors';
 ]
 */
 
-const connection = new signalR.HubConnectionBuilder()
-  .withUrl("http://localhost:5000/pokerHub")
-  .build();
 
-const useStyles = makeStyles( (theme) => ({
+
+const useStyles = makeStyles((theme) => ({
   paper: {
     padding: theme.spacing(2)
+  },
+  menuIcon: {
+    marginRight: theme.spacing(4)
   }
 }));
 
@@ -50,158 +55,61 @@ function App() {
   });
   const classes = useStyles();
 
-  var [user, setUser] = useState('');
-  var [isConnected, setIsConnected] = useState(false);
-  var [isCardLocked, setIsCardLocked] = useState(false);
-  var [users, setUsers] = useState([]);
-  var [cards, setCards] = useState([]);
-  var [selectedCard, setSelectedCard] = useState('');
+  const [user, setUser] = useState('');
+  const userValue = useMemo(() => ({ user, setUser }), [user, setUser]);
 
-  useEffect(() => {
-    const OnUserStatusChange = (userName, lockedIn) => {
-      console.log(users);
-      var newUserArray = [...users];
-      var found = newUserArray.find(x => x.name === userName);
-      if (found) {
-        found.isCardLocked = lockedIn;
-        found.selectedCard = '';
-      } else {
-        newUserArray.push({ name: userName, isCardLocked: lockedIn });
-      }
-      setUsers(newUserArray);
-    }
-    connection.on("ReceiveStatus", OnUserStatusChange);
-    return function cleanup() {
-      connection.off("ReceiveStatus")
-    }
-  }, [users]);
-  useEffect(() => {
-    const OnReceiveNewUser = () => {
-      console.log(user + " ist beigetreten.");
-      connection.invoke("SendStatus", user, isCardLocked);
-    }
+  const [signalRConnection, setSignalRConnection] = useState(null);
+  const connectionValue = useMemo(() => ({ signalRConnection, setSignalRConnection }), [signalRConnection, setSignalRConnection]);
 
-    connection.on("ReceiveNewUser", OnReceiveNewUser);
-    return function cleanup() {
-      connection.off("ReceiveNewUser")
-    }
-  });
-  useEffect(() => {
-    const OnReceiveStart = (userName, newCards) => {
-      console.log(userName + " hat eine neue Runde gestartet. Mögliche Karten sind: " + newCards);
-      setCards(newCards);
-    }
+  var [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    connection.on("ReceiveStart", OnReceiveStart);
-    return function cleanup() {
-      connection.off("ReceiveStart")
-    }
-  });
-  //ReceiveEnd
-  useEffect(() => {
-    const OnReceiveEnd = (userName) => {
-      console.log(userName + " hat die Runde beendet");
-      if (isCardLocked){
-        connection.invoke("RevealCard", user, selectedCard);
-      }
-      setIsCardLocked(false);
-      setSelectedCard('');
-      setCards([]);
-    }
-    connection.on("ReceiveEnd", OnReceiveEnd);
-    return function cleanup() {
-      connection.off("ReceiveEnd")
-    }
-  });
-  //ReceiveCard
-  useEffect(() => {
-    const OnReceiveCard = (userName, c) => {
-      console.log(userName + " hat die Karte " + c + " gewählt");
-      var newUserArray = [...users];
-      var found = newUserArray.find(x => x.name === userName);
-      if (found) {
-        found.selectedCard = c;
-      }
-      setUsers(newUserArray);
-    }
-    connection.on("ReceiveCard", OnReceiveCard);
-    return function cleanup() {
-      connection.off("ReceiveCard")
-    }
-  });
-
-  const onUserChange = (evt) => {
-    console.log(evt.target.value);
-    setUser(evt.target.value);
-  }
-
-  const onLoginClick = () => {
-    console.log(user);
-    connection.start().then(function () {
-      setIsConnected(true);
-      connection.invoke("Enter", user);
-
-    }).catch(function (err) {
-      return console.error(err.toString());
-    });
-
-
+  const onLoginClick = async () => {
+    if (!user) return;
+    setIsLoggedIn(true);
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl("http://localhost:5000/pokerHub")
+      .build();
+    await connection.start();
+    setSignalRConnection(connection);
+    connection.invoke("Enter", user);
   };
-
-  const handleRadioChange = (evt) => {
-    setSelectedCard(evt.target.value);
-  };
-
-  const HandleLockClick = () => {
-    setIsCardLocked(true);
-    connection.invoke("SendStatus", user, true);
-  }
-  const HandleUnlockClick = () => {
-    setIsCardLocked(false);
-    connection.invoke("SendStatus", user, false);
-  }
-  const HandleStartClick = () => {
-    var allowedCards = ["1", "2", "3", "5", "8", "13", "Kaffee"];
-
-    connection.invoke("StartRound", user, allowedCards).catch(function (err) {
-      return console.error(err.toString());
-  });
-  }
-  const HandleStopClick = () => {
-    connection.invoke("EndRound", user);
-  }
-
-
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Grid container spacing={4}>
-        <Grid item xs={12}>
-          <Login user={user} onLoginClick={onLoginClick} onUserChange={onUserChange} isConnected={isConnected} />
-        </Grid>
-        {users.length && 
-        <Grid item xs={12} md={6}>
-          <Paper className={classes.paper}>
-            <Button onClick={HandleStartClick}>Start</Button>
-            <Button onClick={HandleStopClick}>Stop</Button>
-
-            <List>
-              {users.map((user, idx) => <User key={idx} name={user.name} isCardLocked={user.isCardLocked} selectedCard={user.selectedCard} />)}
-            </List>
-          </Paper>
-        </Grid>}
-        {cards.length &&
-        <Grid item xs={12} md={6}>
-          <Paper className={classes.paper}>
-            <RadioGroup value={selectedCard} onChange={handleRadioChange}>
-              {cards.map(card => <FormControlLabel key={card} label={card} value={card} control={<Radio />} />)}
-            </RadioGroup>
-            {!isCardLocked && selectedCard &&<Button onClick={HandleLockClick}>Bestätigen</Button>}
-            {isCardLocked && <Button onClick={HandleUnlockClick}>Zurücksetzen</Button>}
-          </Paper>
-        </Grid>}
-      </Grid>
+      <UserContext.Provider value={userValue}>
+        <ConnectionContext.Provider value={connectionValue}>
+          <AppBar position="static">
+            <Toolbar>
+              <StyleIcon className={classes.menuIcon} />
+              <Typography variant="h6">Planning Poker</Typography>
+            </Toolbar>
+          </AppBar>
+          <Container>
+            {!isLoggedIn &&
+              <Grid container justify="center" alignItems="center" spacing={4}>
+                <Grid item xs={12} md={6} lg={3} >
+                  <Login onLoginClick={onLoginClick} />
+                </Grid>
+              </Grid>
+            }
+            {isLoggedIn &&
+              <Grid container spacing={4}>
+                <Grid item xs={12} md={6}>
+                  <Paper className={classes.paper}>
+                    <UserList />
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} md={6} >
+                  <Paper className={classes.paper}>
+                    <CardSelection />
+                  </Paper>
+                </Grid>
+              </Grid>
+            }
+          </Container>
+        </ConnectionContext.Provider>
+      </UserContext.Provider>
     </ThemeProvider>
 
   );

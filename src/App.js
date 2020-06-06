@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { CssBaseline, Grid, Paper, ThemeProvider, Container, AppBar, Toolbar, Typography, CircularProgress } from '@material-ui/core';
+import { CssBaseline, Grid, Paper, ThemeProvider, Container, AppBar, Toolbar, Typography, CircularProgress, IconButton } from '@material-ui/core';
 import Login from './components/Login';
 import * as signalR from '@aspnet/signalr';
 import { createMuiTheme, makeStyles } from '@material-ui/core/styles';
@@ -10,6 +10,8 @@ import { ConnectionContext } from './ConnectionContext';
 import CardSelection from './components/CardSelection';
 import StyleIcon from '@material-ui/icons/Style';
 import StartStopFab from './components/StartStopFab';
+import Brightness4Icon from '@material-ui/icons/Brightness4';
+import Brightness7Icon from '@material-ui/icons/Brightness7';
 
 
 const useStyles = makeStyles((theme) => ({
@@ -27,27 +29,36 @@ const useStyles = makeStyles((theme) => ({
     position: 'fixed',
     bottom: theme.spacing(2),
     right: theme.spacing(2)
+  },
+  appBar: {
+    flexGrow: 1
+  },
+  title: {
+    flexGrow: 1
   }
 }));
 
 function App() {
 
-  const theme = createMuiTheme({
-    palette: {
-      type: 'light',
-      primary: teal,
-      secondary: teal,
-    }
-  });
+  
   const classes = useStyles();
 
   const [user, setUser] = useState('');
   const userValue = useMemo(() => ({ user, setUser }), [user, setUser]);
 
   const [signalRConnection, setSignalRConnection] = useState(null);
-  const connectionValue = useMemo(() => ({ signalRConnection, setSignalRConnection }), [signalRConnection, setSignalRConnection]);
+  const connectionValue = useMemo(() => ({ signalRConnection, setSignalRConnection }), [signalRConnection, setSignalRConnection]);  
 
   var [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const [useDarkMode, setUseDarkMode] = useState(false);
+  const theme = createMuiTheme({
+    palette: {
+      type: useDarkMode ? 'dark' : 'light',
+      primary: teal,
+      secondary: teal,
+    }
+  });
 
   const onLoginClick = async () => {
     if (!user) return;
@@ -69,12 +80,17 @@ function App() {
       <CssBaseline />
       <UserContext.Provider value={userValue}>
         <ConnectionContext.Provider value={connectionValue}>
+          <div className={classes.appBar}>
           <AppBar position="static">
-            <Toolbar>
+            <Toolbar >
               <StyleIcon className={classes.menuIcon} />
-              <Typography variant="h6">Planning Poker</Typography>
+              <Typography variant="h6" className={classes.title}>Planning Poker</Typography>
+              <IconButton color="inherit" onClick={() => setUseDarkMode(!useDarkMode)}>
+                {useDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+              </IconButton>
             </Toolbar>
           </AppBar>
+          </div>
           <div className={classes.root}>
           <Container>
             {!isLoggedIn &&

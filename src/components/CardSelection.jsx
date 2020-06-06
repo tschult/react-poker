@@ -1,94 +1,154 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { ConnectionContext } from '../ConnectionContext';
-import { UserContext } from '../UserContext';
-import { RadioGroup, FormControlLabel, Radio, Button, CircularProgress, Typography } from '@material-ui/core';
+import React from 'react';
+import { RadioGroup, FormControlLabel, Radio, Button, Typography, Hidden, GridList, GridListTile, Grow, Avatar, withStyles } from '@material-ui/core';
+import FreeBreakfastIcon from '@material-ui/icons/FreeBreakfast';
 
-function CardSelection() {
-    const [cards, setCards] = useState([]);
-    const [isRoundStarted, setIsRoundStarted] = useState(false);
-    const [isCardLocked, setIsCardLocked] = useState(false);
-    const [selectedCard, setSelectedCard] = useState(null);
+const styles = theme => ({
+    root: {
+        display: 'flex',
+        flexWrap: 'wrap',
+    },
+    gridList: {
+        justify: 'center',
+        alignItems: 'stretch'
+    },
+    avatar: {
+        width: theme.spacing(8),
+        height: theme.spacing(8),
+        margin: theme.spacing(4)
+    },
+    selectedAvatar: {
+        width: theme.spacing(8),
+        height: theme.spacing(8),
+        margin: theme.spacing(4),
+        background: theme.palette.primary.main
+    }
 
-    const { signalRConnection } = useContext(ConnectionContext);
-    const { user } = useContext(UserContext);
+});
 
-    //Receive Start
-    useEffect(() => {
-        const OnReceiveStart = (userName, newCards) => {
-            console.log(userName + " hat eine neue Runde gestartet. Mögliche Karten sind: " + newCards);
-            setCards(newCards);
-            setIsRoundStarted(true);
-            signalRConnection.invoke("SendStatus", user, false);
+class CardSelection extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            cards: [],
+            isRoundStarted: false,
+            isCardLocked: false,
+            selectedCard: null
+        };
+        this.signalRConnection = props.signalRConnection;
+        this.user = props.user;
+    }
+
+    componentDidMount() {
+        this.signalRConnection.on("ReceiveStart", this.OnReceiveStart);
+        this.signalRConnection.on("ReceiveEnd", this.OnReceiveEnd);
+        this.signalRConnection.on("ReceiveNewUser", this.OnReceiveNewUser);
+    }
+
+    componentWillUnmount() {
+        this.signalRConnection.off("ReceiveStart", this.OnReceiveStart);
+        this.signalRConnection.off("ReceiveEnd", this.OnReceiveEnd);
+        this.signalRConnection.off("ReceiveNewUser", this.OnReceiveNewUser);
+    }
+
+    OnReceiveStart = (userName, newCards) => {
+        console.log(userName + " hat eine neue Runde gestartet. Mögliche Karten sind: " + newCards);
+        this.setState(() => ({ cards: newCards, isRoundStarted: true, selectedCard: null, isCardLocked: false }));
+        this.signalRConnection.invoke("SendStatus", this.user, false);
+    }
+
+    OnReceiveEnd = (userName) => {
+        console.log(userName + " hat die Runde beendet");
+        if (this.state.isCardLocked) {
+            this.signalRConnection.invoke("RevealCard", this.user, this.state.selectedCard);
         }
+        this.setState(() => ({
+            isCardLocked: false,
+            selectedCard: null,
+            cards: [],
+            isRoundStarted: false
+        }))
+    }
 
-        signalRConnection && signalRConnection.on("ReceiveStart", OnReceiveStart);
-        return function cleanup() {
-            signalRConnection && signalRConnection.off("ReceiveStart", OnReceiveStart)
-        }
-    }, [signalRConnection, user]);
+    OnReceiveNewUser = (newUser) => {
+        console.log(newUser + " ist beigetreten.");
+        this.signalRConnection.invoke("SendStatus", this.user, this.state.isCardLocked);
+    }
 
-    //ReceiveEnd
-    useEffect(() => {
-        const OnReceiveEnd = (userName) => {
-            console.log(userName + " hat die Runde beendet");
-            if (isCardLocked) {
-                signalRConnection.invoke("RevealCard", user, selectedCard);
-                
-            }
-            setIsCardLocked(false);
-
-            setSelectedCard('');
-            setCards([]);
-            setIsRoundStarted(false);
-        }
-        signalRConnection && signalRConnection.on("ReceiveEnd", OnReceiveEnd);
-        return function cleanup() {
-            signalRConnection && signalRConnection.off("ReceiveEnd", OnReceiveEnd)
-        }
-    }, [signalRConnection, isCardLocked, user, selectedCard]);
-
-    // Receive New User => send my status
-    useEffect(() => {
-        const OnReceiveNewUser = () => {
-            console.log(user + " ist beigetreten.");
-            signalRConnection.invoke("SendStatus", user, isCardLocked);
-        }
-
-        signalRConnection && signalRConnection.on("ReceiveNewUser", OnReceiveNewUser);
-        return function cleanup() {
-            signalRConnection && signalRConnection.off("ReceiveNewUser", OnReceiveNewUser)
-        }
-    }, [signalRConnection, isCardLocked, user]);
-
-    const handleRadioChange = (evt) => {
-        setSelectedCard(evt.target.value);
+    setSelectedCard(card) {
+        this.setState(() => ({
+            selectedCard: card
+        }))
     };
 
-    const HandleLockClick = () => {
-        setIsCardLocked(true);
-        signalRConnection.invoke("SendStatus", user, true);
+    toggleSelectedCard(card) {
+        if (this.state.selectedCard === card) {
+            this.setSelectedCard(null);
+            this.HandleUnlockClick();
+        } else {
+            this.setSelectedCard(card);
+            this.HandleLockClick();
+
+        }
+
     }
-    const HandleUnlockClick = () => {
-        setIsCardLocked(false);
-        signalRConnection.invoke("SendStatus", user, false);
+
+    HandleLockClick() {
+        this.setState(() => ({
+            isCardLocked: true
+        }))
+        this.signalRConnection.invoke("SendStatus", this.user, true);
+    }
+    HandleUnlockClick() {
+        this.setState(() => ({
+            isCardLocked: false
+        }))
+        this.signalRConnection.invoke("SendStatus", this.user, false);
     }
 
-    if (!signalRConnection)
-        return <CircularProgress />
+    render() {
+        const { classes } = this.props;
 
-    if (!isRoundStarted)
-        return <Typography>... keine Runde gestartet</Typography>
+        if (!this.state.isRoundStarted)
+            return (
+                <Typography>... keine Runde gestartet</Typography>
+            )
 
-    return (
-        <>
-            <RadioGroup value={selectedCard} onChange={handleRadioChange}>
-                {cards.map(card => <FormControlLabel key={card} label={card} value={card} control={<Radio />} />)}
-            </RadioGroup>
-            {!isCardLocked && selectedCard && <Button onClick={HandleLockClick}>Bestätigen</Button>}
-            {isCardLocked && <Button onClick={HandleUnlockClick}>Zurücksetzen</Button>}
-        </>
-    );
+        return (
+            <div>
+                <Hidden mdUp>
+                    <RadioGroup value={this.state.selectedCard} onChange={e => this.setSelectedCard(e.target.value)}>
+                        {this.state.cards.map(card => <FormControlLabel key={card} label={card} value={card} control={<Radio />} />)}
+                    </RadioGroup>
+                    {!this.state.isCardLocked && <Button variant="contained" color="primary" disabled={!this.state.selectedCard} onClick={() => this.HandleLockClick()}>Bestätigen</Button>}
+                    {this.state.isCardLocked && <Button variant="contained" onClick={() => this.HandleUnlockClick()}>Zurücksetzen</Button>}
+                </Hidden>
+                <Hidden smDown>
+                    <div className={classes.root}>
+                        <GridList cellHeight={160} cols={3} className={classes.gridList} spacing={2}>
+                            {this.state.cards.map(card => (
+                                <Grow in={true} key={card}>
+                                    <GridListTile  >
+                                        <Button 
+                                            fullWidth 
+                                            variant="outlined" 
+                                            onClick={() => this.toggleSelectedCard(card)}
+                                            color={this.state.selectedCard === card ? "primary" : "default"} >
+                                            <Avatar className={this.state.selectedCard === card ? classes.selectedAvatar : classes.avatar} >
+                                                {card === "Kaffee" ? <FreeBreakfastIcon /> : <Typography variant="h4" >{card}</Typography>}
+                                            </Avatar>
 
-};
+                                        </Button>
 
-export default CardSelection;
+                                    </GridListTile>
+                                </Grow>
+                            ))}
+
+                        </GridList>
+                    </div>
+                </Hidden>
+            </div>
+        )
+    }
+}
+
+export default withStyles(styles)(CardSelection);

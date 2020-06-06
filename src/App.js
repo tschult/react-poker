@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { CssBaseline, Grid, Paper, ThemeProvider, Container, AppBar, Toolbar, Typography } from '@material-ui/core';
+import { CssBaseline, Grid, Paper, ThemeProvider, Container, AppBar, Toolbar, Typography, CircularProgress } from '@material-ui/core';
 import Login from './components/Login';
 import * as signalR from '@aspnet/signalr';
 import { createMuiTheme, makeStyles } from '@material-ui/core/styles';
@@ -9,38 +9,24 @@ import UserList from './components/UserList';
 import { ConnectionContext } from './ConnectionContext';
 import CardSelection from './components/CardSelection';
 import StyleIcon from '@material-ui/icons/Style';
-
-
-/*
-{
-  "Tino": false,
-  "Paul": true
-}
-
-[
-  {
-    "name": "tino",
-    "isCardLocked": false,
-    "connectionId": "asdfgg",
-    selectedCard: "1"
-  },
-  {}
-]
-
-[
-  {"tino" : false},
-  {"paul": true}
-]
-*/
-
+import StartStopFab from './components/StartStopFab';
 
 
 const useStyles = makeStyles((theme) => ({
+  root: {
+    flexGrow: 1,
+    padding: theme.spacing(2)
+  },
   paper: {
     padding: theme.spacing(2)
   },
   menuIcon: {
     marginRight: theme.spacing(4)
+  },
+  fab: {
+    position: 'fixed',
+    bottom: theme.spacing(2),
+    right: theme.spacing(2)
   }
 }));
 
@@ -48,7 +34,7 @@ function App() {
 
   const theme = createMuiTheme({
     palette: {
-      type: 'dark',
+      type: 'light',
       primary: teal,
       secondary: teal,
     }
@@ -66,12 +52,16 @@ function App() {
   const onLoginClick = async () => {
     if (!user) return;
     setIsLoggedIn(true);
-    const connection = new signalR.HubConnectionBuilder()
-      .withUrl("http://localhost:5000/pokerHub")
-      .build();
-    await connection.start();
-    setSignalRConnection(connection);
-    connection.invoke("Enter", user);
+    try {
+      const connection = new signalR.HubConnectionBuilder()
+        .withUrl("http://pc19720:5000/pokerHub")
+        .build();
+      await connection.start();
+      setSignalRConnection(connection);
+      connection.invoke("Enter", user);
+    } catch (error) {
+      setIsLoggedIn(false);
+    }
   };
 
   return (
@@ -85,6 +75,7 @@ function App() {
               <Typography variant="h6">Planning Poker</Typography>
             </Toolbar>
           </AppBar>
+          <div className={classes.root}>
           <Container>
             {!isLoggedIn &&
               <Grid container justify="center" alignItems="center" spacing={4}>
@@ -95,19 +86,21 @@ function App() {
             }
             {isLoggedIn &&
               <Grid container spacing={4}>
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} sm={6} md={4}>
                   <Paper className={classes.paper}>
-                    <UserList />
+                    {signalRConnection ? <UserList signalRConnection={signalRConnection} user={user} /> : <CircularProgress />}
                   </Paper>
                 </Grid>
-                <Grid item xs={12} md={6} >
+                <Grid item xs={12} sm={6} md={8} >
                   <Paper className={classes.paper}>
-                    <CardSelection />
+                    {signalRConnection ? <CardSelection signalRConnection={signalRConnection} user={user} /> : <CircularProgress />}
                   </Paper>
                 </Grid>
               </Grid>
             }
           </Container>
+          {signalRConnection && <StartStopFab className={classes.fab} signalRConnection={signalRConnection} user={user}/>}
+          </div>
         </ConnectionContext.Provider>
       </UserContext.Provider>
     </ThemeProvider>

@@ -4,7 +4,7 @@ import LockOpenOutlinedIcon from '@material-ui/icons/LockOpenOutlined';
 import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
 import FreeBreakfastIcon from '@material-ui/icons/FreeBreakfast';
 import {makeStyles} from '@material-ui/core/styles';
-import { UserContext } from '../UserContext';
+import { UserContext } from '../contexts/UserContext';
 
 const useStyles = makeStyles((theme) => ({
     green: {

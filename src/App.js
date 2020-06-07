@@ -4,14 +4,15 @@ import Login from './components/Login';
 import * as signalR from '@aspnet/signalr';
 import { createMuiTheme, makeStyles } from '@material-ui/core/styles';
 import { teal } from '@material-ui/core/colors';
-import { UserContext } from './UserContext';
+import { UserContext } from './contexts/UserContext';
 import UserList from './components/UserList';
-import { ConnectionContext } from './ConnectionContext';
+import { ConnectionContext } from './contexts/ConnectionContext';
 import CardSelection from './components/CardSelection';
 import StyleIcon from '@material-ui/icons/Style';
 import StartStopFab from './components/StartStopFab';
 import Brightness4Icon from '@material-ui/icons/Brightness4';
 import Brightness7Icon from '@material-ui/icons/Brightness7';
+import InstallPWAButton from './components/InstallPWAButton';
 
 
 const useStyles = makeStyles((theme) => ({
@@ -88,6 +89,7 @@ function App() {
               <IconButton color="inherit" onClick={() => setUseDarkMode(!useDarkMode)}>
                 {useDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
               </IconButton>
+              <InstallPWAButton />
             </Toolbar>
           </AppBar>
           </div>

@@ -120,7 +120,7 @@ class CardSelection extends React.Component {
             <div>
                 <Hidden mdUp>
                     <List>
-                        <ListSubheader>Wähle eine Karte:</ListSubheader>
+                        <ListSubheader><Typography>Wähle eine Karte</Typography></ListSubheader>
                         {this.state.cards.map(card => (
                             <ListItem button key={card} onClick={() => this.toggleSelectedCard(card)} selected={this.state.selectedCard === card}>
                                 <ListItemIcon>

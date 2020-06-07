@@ -65,7 +65,7 @@ function App() {
     setIsLoggedIn(true);
     try {
       const connection = new signalR.HubConnectionBuilder()
-        .withUrl("https://scrumpokeronline.azurewebsites.net/pokerHub")
+        .withUrl("https://tspp-signalr.azurewebsites.net/pokerHub")
         .build();
       await connection.start();
       setSignalRConnection(connection);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RadioGroup, FormControlLabel, Radio, Button, Typography, Hidden, GridList, GridListTile, Grow, Avatar, withStyles } from '@material-ui/core';
+import { Button, Typography, Hidden, GridList, GridListTile, Grow, Avatar, withStyles, ListItem, ListItemIcon, List, ListSubheader } from '@material-ui/core';
 import FreeBreakfastIcon from '@material-ui/icons/FreeBreakfast';
 
 const styles = theme => ({
@@ -20,6 +20,9 @@ const styles = theme => ({
         width: theme.spacing(8),
         height: theme.spacing(8),
         margin: theme.spacing(4),
+        background: theme.palette.primary.main
+    },
+    selected: {
         background: theme.palette.primary.main
     }
 
@@ -116,11 +119,18 @@ class CardSelection extends React.Component {
         return (
             <div>
                 <Hidden mdUp>
-                    <RadioGroup value={this.state.selectedCard} onChange={e => this.setSelectedCard(e.target.value)}>
-                        {this.state.cards.map(card => <FormControlLabel key={card} label={card} value={card} control={<Radio />} />)}
-                    </RadioGroup>
-                    {!this.state.isCardLocked && <Button variant="contained" color="primary" disabled={!this.state.selectedCard} onClick={() => this.HandleLockClick()}>Bestätigen</Button>}
-                    {this.state.isCardLocked && <Button variant="contained" onClick={() => this.HandleUnlockClick()}>Zurücksetzen</Button>}
+                    <List>
+                        <ListSubheader>Wähle eine Karte:</ListSubheader>
+                        {this.state.cards.map(card => (
+                            <ListItem button key={card} onClick={() => this.toggleSelectedCard(card)} selected={this.state.selectedCard === card}>
+                                <ListItemIcon>
+                                    <Avatar className={this.state.selectedCard === card ? classes.selected : ""}>
+                                        {card === "Kaffee" ? <FreeBreakfastIcon /> : <Typography >{card}</Typography>}
+                                    </Avatar>
+                                </ListItemIcon>
+                            </ListItem>
+                        ))}
+                    </List>
                 </Hidden>
                 <Hidden smDown>
                     <div className={classes.root}>
@@ -128,9 +138,9 @@ class CardSelection extends React.Component {
                             {this.state.cards.map(card => (
                                 <Grow in={true} key={card}>
                                     <GridListTile  >
-                                        <Button 
-                                            fullWidth 
-                                            variant="outlined" 
+                                        <Button
+                                            fullWidth
+                                            variant="outlined"
                                             onClick={() => this.toggleSelectedCard(card)}
                                             color={this.state.selectedCard === card ? "primary" : "default"} >
                                             <Avatar className={this.state.selectedCard === card ? classes.selectedAvatar : classes.avatar} >
@@ -146,7 +156,7 @@ class CardSelection extends React.Component {
                         </GridList>
                     </div>
                 </Hidden>
-            </div>
+            </div >
         )
     }
 }

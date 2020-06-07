@@ -19,6 +19,10 @@ class UserList extends React.Component {
 
         this.signalRConnection.on("ReceiveStart", this.OnReceiveStart);
 
+        this.signalRConnection.on("ReceiveUserDisconnect", this.OnReceiveUserDisconnect)
+
+        this.signalRConnection.on("ReceiveNewUser", this.OnReceiveNewUser)
+
     }
 
     componentWillUnmount() {
@@ -52,6 +56,14 @@ class UserList extends React.Component {
     }
     OnReceiveStart = () => {
         this.setState((state) => ({ users: state.users.map(u => { return { ...u, selectedCard: null } }) }));
+    }
+
+    OnReceiveNewUser = (newUser, connectionId) => {
+        this.setState((state) => ({users: [...state.users, {connectionId: connectionId, name: newUser, isCardLocked: false, selectedCard: ''}]}))
+    }
+
+    OnReceiveUserDisconnect = (connectionId) => {
+        this.setState((state) => ({users: state.users.filter(user => user.connectionId !== connectionId)}));
     }
 
     render() {

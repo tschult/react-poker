@@ -82,7 +82,7 @@ function App() {
       <UserContext.Provider value={userValue}>
         <ConnectionContext.Provider value={connectionValue}>
           <div className={classes.appBar}>
-          <AppBar position="static">
+          <AppBar position="fixed">
             <Toolbar >
               <StyleIcon className={classes.menuIcon} />
               <Typography variant="h6" className={classes.title}>Planning Poker</Typography>
@@ -92,6 +92,7 @@ function App() {
               <InstallPWAButton />
             </Toolbar>
           </AppBar>
+          <Toolbar/>
           </div>
           <div className={classes.root}>
           <Container>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { CssBaseline, Grid, Paper, ThemeProvider, Container, AppBar, Toolbar, Typography, CircularProgress, IconButton } from '@material-ui/core';
+import { CssBaseline, Grid, Paper, ThemeProvider, Container, AppBar, Toolbar, Typography, CircularProgress, IconButton, useMediaQuery } from '@material-ui/core';
 import Login from './components/Login';
 import * as signalR from '@aspnet/signalr';
 import { createMuiTheme, makeStyles } from '@material-ui/core/styles';
@@ -52,7 +52,7 @@ function App() {
 
   var [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const [useDarkMode, setUseDarkMode] = useState(false);
+  const [useDarkMode, setUseDarkMode] = useState(useMediaQuery('(prefers-color-scheme: dark)'));
   const theme = createMuiTheme({
     palette: {
       type: useDarkMode ? 'dark' : 'light',

@@ -59,11 +59,11 @@ class UserList extends React.Component {
     }
 
     OnReceiveNewUser = (newUser, connectionId) => {
-        this.setState((state) => ({users: [...state.users, {connectionId: connectionId, name: newUser, isCardLocked: false, selectedCard: ''}]}))
+        this.setState((state) => ({ users: [...state.users, { connectionId: connectionId, name: newUser, isCardLocked: false, selectedCard: '' }] }))
     }
 
     OnReceiveUserDisconnect = (connectionId) => {
-        this.setState((state) => ({users: state.users.filter(user => user.connectionId !== connectionId)}));
+        this.setState((state) => ({ users: state.users.filter(user => user.connectionId !== connectionId) }));
     }
 
     render() {
@@ -72,7 +72,7 @@ class UserList extends React.Component {
                 <ListSubheader>
                     <Typography>Angemeldete Benutzer</Typography>
                 </ListSubheader>
-                {this.state.users.map((u, idx) => <User key={idx} user={u} />)}
+                {this.state.users.sort((a, b) => a.name - b.name).map((u, idx) => <User key={u.name} user={u} />)}
             </List>
         );
     }

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { CssBaseline, Grid, Paper, ThemeProvider, Container, AppBar, Toolbar, Typography, CircularProgress, IconButton, useMediaQuery } from '@material-ui/core';
+import clsx from 'clsx';
+import { CssBaseline, Grid, Paper, ThemeProvider, Container, AppBar, Toolbar, Typography, CircularProgress, IconButton, useMediaQuery, Drawer, Divider } from '@material-ui/core';
 import Login from './components/Login';
 import * as signalR from '@aspnet/signalr';
 import { createMuiTheme, makeStyles } from '@material-ui/core/styles';
@@ -12,7 +13,12 @@ import StyleIcon from '@material-ui/icons/Style';
 import StartStopFab from './components/StartStopFab';
 import Brightness4Icon from '@material-ui/icons/Brightness4';
 import Brightness7Icon from '@material-ui/icons/Brightness7';
+import ChevronLeftIcon from '@material-ui/icons/ChevronLeft';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import ChatIcon from '@material-ui/icons/Chat';
 import InstallPWAButton from './components/InstallPWAButton';
+import { deDE } from '@material-ui/core/locale';
+import MessageBoard from './components/MessageBoard';
 
 
 const useStyles = makeStyles((theme) => ({
@@ -41,25 +47,29 @@ const useStyles = makeStyles((theme) => ({
 
 function App() {
 
-  
+
   const classes = useStyles();
 
   const [user, setUser] = useState('');
   const userValue = useMemo(() => ({ user, setUser }), [user, setUser]);
 
   const [signalRConnection, setSignalRConnection] = useState(null);
-  const connectionValue = useMemo(() => ({ signalRConnection, setSignalRConnection }), [signalRConnection, setSignalRConnection]);  
+  const connectionValue = useMemo(() => ({ signalRConnection, setSignalRConnection }), [signalRConnection, setSignalRConnection]);
 
   var [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   const [useDarkMode, setUseDarkMode] = useState(useMediaQuery('(prefers-color-scheme: dark)'));
-  const theme = createMuiTheme({
-    palette: {
-      type: useDarkMode ? 'dark' : 'light',
-      primary: teal,
-      secondary: teal,
-    }
-  });
+  const theme = useMemo(
+    () =>
+      createMuiTheme({
+        palette: {
+          type: useDarkMode ? 'dark' : 'light',
+          primary: teal,
+          secondary: teal,
+        }
+      }, deDE), [useDarkMode]);
 
   const onLoginClick = async () => {
     if (!user) return;
@@ -68,12 +78,31 @@ function App() {
       const connection = new signalR.HubConnectionBuilder()
         .withUrl("https://tspp-signalr.azurewebsites.net/pokerHub")
         .build();
-      await connection.start();
-      setSignalRConnection(connection);
-      connection.invoke("Enter", user);
+      connection.onclose(async () => {
+        await start(connection);
+      })
+      await start(connection);
     } catch (error) {
       setIsLoggedIn(false);
     }
+  };
+
+  async function start(connection) {
+    try {
+      await connection.start();
+      setSignalRConnection(connection);
+      connection.invoke("Enter", user);
+    } catch (err) {
+      setTimeout(() => start(connection), 5000);
+    }
+  }
+
+  const handleDrawerOpen = () => {
+    setIsDrawerOpen(true);
+  };
+
+  const handleDrawerClose = () => {
+    setIsDrawerOpen(false);
   };
 
   return (
@@ -82,44 +111,63 @@ function App() {
       <UserContext.Provider value={userValue}>
         <ConnectionContext.Provider value={connectionValue}>
           <div className={classes.appBar}>
-          <AppBar position="fixed">
-            <Toolbar >
-              <StyleIcon className={classes.menuIcon} />
-              <Typography variant="h6" className={classes.title}>Planning Poker</Typography>
-              <IconButton color="inherit" onClick={() => setUseDarkMode(!useDarkMode)}>
-                {useDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-              </IconButton>
-              <InstallPWAButton />
-            </Toolbar>
-          </AppBar>
-          <Toolbar/>
+            <AppBar position="fixed">
+              <Toolbar >
+                <StyleIcon className={classes.menuIcon} />
+                <Typography variant="h6" className={classes.title}>Planning Poker</Typography>
+                <IconButton color="inherit" onClick={() => setUseDarkMode(!useDarkMode)}>
+                  {useDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+                </IconButton>
+                <InstallPWAButton />
+                <IconButton
+                  color="inherit"
+                  aria-label="open drawer"
+                  edge="end"
+                  onClick={handleDrawerOpen}
+                  className={clsx(isDrawerOpen && classes.hide)}
+                >
+                  <ChatIcon />
+                </IconButton>
+              </Toolbar>
+            </AppBar>
+            <Toolbar />
           </div>
           <div className={classes.root}>
-          <Container>
-            {!isLoggedIn &&
-              <Grid container justify="center" alignItems="center" spacing={4}>
-                <Grid item xs={12} md={6} lg={3} >
-                  <Login onLoginClick={onLoginClick} />
+            <Container>
+              {!isLoggedIn &&
+                <Grid container justify="center" alignItems="center" spacing={4}>
+                  <Grid item xs={12} md={6} lg={3} >
+                    <Login onLoginClick={onLoginClick} />
+                  </Grid>
                 </Grid>
-              </Grid>
-            }
-            {isLoggedIn &&
-              <Grid container spacing={4}>
-                <Grid item xs={12} sm={6} md={4}>
-                  <Paper className={classes.paper}>
-                    {signalRConnection ? <UserList signalRConnection={signalRConnection} user={user} /> : <CircularProgress />}
-                  </Paper>
+              }
+              {isLoggedIn &&
+                <Grid container spacing={4}>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Paper className={classes.paper}>
+                      {signalRConnection ? <UserList signalRConnection={signalRConnection} user={user} /> : <CircularProgress />}
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={8} >
+                    <Paper className={classes.paper}>
+                      {signalRConnection ? <CardSelection signalRConnection={signalRConnection} user={user} /> : <CircularProgress />}
+                    </Paper>
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} sm={6} md={8} >
-                  <Paper className={classes.paper}>
-                    {signalRConnection ? <CardSelection signalRConnection={signalRConnection} user={user} /> : <CircularProgress />}
-                  </Paper>
-                </Grid>
-              </Grid>
-            }
-          </Container>
-          {signalRConnection && <StartStopFab className={classes.fab} signalRConnection={signalRConnection} user={user}/>}
+              }
+            </Container>
+            {signalRConnection && <StartStopFab className={classes.fab} signalRConnection={signalRConnection} user={user} />}
           </div>
+          {isLoggedIn && signalRConnection && <Drawer variant="persistent" open={isDrawerOpen} anchor="right" >
+            <div className={classes.drawerHeader}>
+              <IconButton onClick={handleDrawerClose}>
+                {theme.direction === 'rtl' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+              </IconButton>
+            </div>
+            <Divider />
+            <MessageBoard signalRConnection={signalRConnection} user={user} />
+
+          </Drawer>}
         </ConnectionContext.Provider>
       </UserContext.Provider>
     </ThemeProvider>
